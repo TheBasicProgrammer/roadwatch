@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Condition Monitoring</title>
+    <style>
+        /* Reset default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Left side - black background */
+        .left-frame {
+            width: 100%;
+            max-width: 300px;
+            background-color: black;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        /* Right side - goldenrod background */
+        .right-frame {
+            flex-grow: 1;
+            background-color: goldenrod;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Logo */
+        #logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+
+        /* Buttons */
+        button {
+            background-color: goldenrod;
+            color: black;
+            font-size: 1rem;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #c88d4b;
+            transform: scale(1.05);
+        }
+
+        /* Upload Form */
+        #uploadForm {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #uploadForm input {
+            display: block;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        /* Result text */
+        #result {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #FF6347;
+            text-align: center;
+        }
+
+        /* Video container styling */
+        #videoContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 aspect ratio */
+            background-color: #000;
+            overflow: hidden;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+
+        #videoFeed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        #exitWebcam {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 0.9rem;
+            padding: 10px 20px; 
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #exitWebcam:hover {
+            background-color: rgba(255, 0, 0, 0.8);
+        }
+
+        /* Hide result section by default, then show once processed */
+        #outputImage {
+            max-width: 100%;
+            height: auto;
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-frame">
+        <img id="logo" src="{{ url_for('static', filename='roadwatch_logo.jpg') }}" alt="RoadWatch Logo">
+        <button id="toggleUpload">Use Image Upload</button>
+        <button id="toggleVideo">Use Camera</button>
+        <button id="stopWebcam" style="display: none;">Stop Camera</button>
+    </div>
+
+    <div class="right-frame">
+        <h1 style="text-align: center;">ROAD WATCH</h1>
+        <form id="uploadForm">
+            <input type="file" id="imageInput" accept="image/*" required>
+            <button type="submit">Upload and Process</button>
+        </form>
+        <div id="videoContainer" style="display: none;">
+            <img id="videoFeed" src="" alt="Camera Feed">
+            <button id="exitWebcam">Exit Camera</button>
+        </div>
+        <div id="result"></div>
+        <img id="outputImage" src="" alt="Processed Image">
+    </div>
+    <script>
+        const toggleUploadBtn = document.getElementById("toggleUpload");
+        const toggleVideoBtn = document.getElementById("toggleVideo");
+        const uploadForm = document.getElementById("uploadForm");
+        const videoContainer = document.getElementById("videoContainer");
+        const resultDiv = document.getElementById("result");
+        const outputImage = document.getElementById("outputImage");
+        const exitWebcamBtn = document.getElementById("exitWebcam");
+
+        // Switch between upload and video
+        toggleUploadBtn.onclick = () => {
+            uploadForm.style.display = "block";
+            videoContainer.style.display = "none";
+            resultDiv.textContent = "";
+            outputImage.style.display = "none";
+        };
+
+        toggleVideoBtn.onclick = async () => {
+            const response = await fetch("/start_webcam", { method: "POST" });
+            if (response.ok) {
+                uploadForm.style.display = "none";
+                videoContainer.style.display = "block";
+                resultDiv.textContent = "";
+                outputImage.style.display = "none";
+                document.getElementById("videoFeed").src = "/video_feed"; // Start video feed
+            } else {
+                resultDiv.textContent = "Error starting the camera feed.";
+            }
+        };
+
+        // Handle Image Upload
+        uploadForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const file = document.getElementById("imageInput").files[0];
+            const formData = new FormData();
+            formData.append("image", file);
+
+            resultDiv.textContent = "Processing...";
+            const response = await fetch("/process_image", { method: "POST", body: formData });
+
+            if (response.ok) {
+                const data = await response.json();
+                outputImage.src = `data:image/jpeg;base64,${data.image}`;
+                outputImage.style.display = "block";
+
+                resultDiv.textContent = data.anomaly
+                    ? "Anomalous class detected!"
+                    : "No anomalies detected.";
+            } else {
+                resultDiv.textContent = "Error processing the image.";
+            }
+        };
+
+        // Exit Webcam
+        exitWebcamBtn.onclick = async () => {
+            const response = await fetch("/stop_webcam", { method: "POST" });
+            if (response.ok) {
+                videoContainer.style.display = "none";
+                resultDiv.textContent = "Webcam feed exited.";
+                document.getElementById("videoFeed").src = ""; // Stop video feed
+            } else {
+                resultDiv.textContent = "Error stopping the webcam.";
+            }
+        };
+    </script>
+</body>
+</html>
