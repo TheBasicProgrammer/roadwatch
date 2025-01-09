@@ -4,9 +4,10 @@ import cv2
 import numpy as np
 from PIL import Image
 import base64
+import os
+os.environ["SDL_AUDIODRIVER"] = "dsp"
 import pygame  # Import pygame
 import threading
-import os
 
 app = Flask(__name__)
 
