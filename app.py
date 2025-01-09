@@ -5,9 +5,10 @@ import numpy as np
 from PIL import Image
 import base64
 import os
-os.environ["SDL_AUDIODRIVER"] = "dsp"
+os.environ["SDL_AUDIODRIVER"] = "dummy" 
 import pygame  # Import pygame
 import threading
+pygame.mixer.init()
 
 app = Flask(__name__)
 
@@ -148,5 +149,5 @@ def video_feed():
 
 if __name__ == '__main__':
     print("Starting Flask application...")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-    #app.run(host="0.0.0.0", port=5000)
+    #app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host="0.0.0.0", port=5000)
