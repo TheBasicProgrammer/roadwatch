@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import base64
-import winsound
+import pygame  # Import pygame
 import threading
 import os
 
@@ -14,6 +14,9 @@ exit_webcam = False
 webcam_active = False  # New flag to track webcam state
 webcam_lock = threading.Lock()
 camera = None  # Global variable to hold the camera instance
+
+# Initialize pygame mixer for sound playback
+pygame.mixer.init()
 
 # Load YOLO model
 model = YOLO("C:/Users/ryfie/Downloads/RoadWatch_V1/best.pt")  # Update path if needed
@@ -51,7 +54,8 @@ def process_image():
             break
 
     if anomalous_class_detected:
-        winsound.Beep(1000, 500)  # Play beep for anomaly
+        sound = pygame.mixer.Sound('beep.wav')  # Load the beep sound
+        sound.play()  # Play the sound when anomaly detected
 
     # Convert annotated image back to displayable format
     _, buffer = cv2.imencode('.jpg', annotated_image)
@@ -89,7 +93,8 @@ def generate_video_feed():
             if anomalous_class_detected:
                 cv2.putText(annotated_frame, "Anomaly Detected!", (20, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                winsound.Beep(1000, 500)  # Beep sound for anomaly detection
+                sound = pygame.mixer.Sound('beep.wav')  # Load the beep sound
+                sound.play()  # Play the sound when anomaly detected
 
             # Encode the frame
             _, buffer = cv2.imencode('.jpg', annotated_frame)
@@ -142,5 +147,5 @@ def video_feed():
 
 if __name__ == '__main__':
     print("Starting Flask application...")
-    #app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    #app.run(host="0.0.0.0", port=5000)
